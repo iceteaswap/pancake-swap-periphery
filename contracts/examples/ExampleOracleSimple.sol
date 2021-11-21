@@ -1,31 +1,35 @@
 pragma solidity =0.6.6;
 
-import '@uniswap/v2-core/contracts/interfaces/IPancakeFactory.sol';
-import '@uniswap/v2-core/contracts/interfaces/IPancakePair.sol';
+import '@uniswap/v2-core/contracts/interfaces/IIceteaFactory.sol';
+import '@uniswap/v2-core/contracts/interfaces/IIceteaPair.sol';
 import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
 
-import '../libraries/PancakeOracleLibrary.sol';
-import '../libraries/PancakeLibrary.sol';
+import '../libraries/IceteaOracleLibrary.sol';
+import '../libraries/IceteaLibrary.sol';
 
 // fixed window oracle that recomputes the average price for the entire period once every period
 // note that the price average is only guaranteed to be over at least 1 period, but may be over a longer period
 contract ExampleOracleSimple {
     using FixedPoint for *;
 
-    uint public constant PERIOD = 24 hours;
+    uint256 public constant PERIOD = 24 hours;
 
-    IPancakePair immutable pair;
+    IIceteaPair immutable pair;
     address public immutable token0;
     address public immutable token1;
 
-    uint    public price0CumulativeLast;
-    uint    public price1CumulativeLast;
-    uint32  public blockTimestampLast;
+    uint256 public price0CumulativeLast;
+    uint256 public price1CumulativeLast;
+    uint32 public blockTimestampLast;
     FixedPoint.uq112x112 public price0Average;
     FixedPoint.uq112x112 public price1Average;
 
-    constructor(address factory, address tokenA, address tokenB) public {
-        IPancakePair _pair = IPancakePair(PancakeLibrary.pairFor(factory, tokenA, tokenB));
+    constructor(
+        address factory,
+        address tokenA,
+        address tokenB
+    ) public {
+        IIceteaPair _pair = IIceteaPair(IceteaLibrary.pairFor(factory, tokenA, tokenB));
         pair = _pair;
         token0 = _pair.token0();
         token1 = _pair.token1();
@@ -38,8 +42,8 @@ contract ExampleOracleSimple {
     }
 
     function update() external {
-        (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
-            PancakeOracleLibrary.currentCumulativePrices(address(pair));
+        (uint256 price0Cumulative, uint256 price1Cumulative, uint32 blockTimestamp) = IceteaOracleLibrary
+            .currentCumulativePrices(address(pair));
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
 
         // ensure that at least one full period has passed since the last update
@@ -56,7 +60,7 @@ contract ExampleOracleSimple {
     }
 
     // note this will always return 0 before update has been called successfully for the first time.
-    function consult(address token, uint amountIn) external view returns (uint amountOut) {
+    function consult(address token, uint256 amountIn) external view returns (uint256 amountOut) {
         if (token == token0) {
             amountOut = price0Average.mul(amountIn).decode144();
         } else {
